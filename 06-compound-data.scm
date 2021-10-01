@@ -181,3 +181,137 @@
 	  (display pile)
 	  (newline)
 	  (remove-coins-from-pile game-state 1 pile))))
+
+;;; Exercise 6.13
+;; A: (make-move-instruction num-coins pile-number) will return a move
+;; instruction inst. Then we can access num-coins and pile-number with the
+;; procedures (move-instruction-num-coins inst) and
+;; (move-instruction-pile-number).
+;; (move-instruction-num-coins (make-move-instruction n m)) = n.
+;; (move-instruction-pile-number (make-move-instruction n m)) = m.
+
+;; B:
+(define make-move-instruction
+  (lambda (num-coins pile-number)
+	(cons num-coins pile-number)))
+
+(define move-instruction-num-coins
+  (lambda (inst)
+	(car inst)))
+
+(define move-instruction-pile-number
+  (lambda (inst)
+	(cdr inst)))
+
+;; C:
+(define make-game-state
+  (lambda (n m)
+	(cons n m)))
+
+(define size-of-pile
+  (lambda (game-state pile-number)
+	(if (= pile-number 1)
+		(car game-state)
+		(cdr game-state))))
+
+(define next-game-state
+  (lambda (game-state inst)
+	(let ((pile-number (move-instruction-pile-number inst))
+		  (pile-1 (size-of-pile game-state 1))
+		  (pile-2 (size-of-pile game-state 2)))
+	  (if (= pile-number 1)
+		  (make-game-state (- pile-1
+							  (min (move-instruction-num-coins inst)
+								   pile-1))
+						   pile-2)
+		  (make-game-state pile-1
+						   (- pile-2
+							  (min (move-instruction-num-coins inst)
+								   pile-2)))))))
+
+(define display-game-state
+  (lambda (game-state)
+	(newline)
+	(newline)
+	(display "  Pile 1: ")
+	(display (size-of-pile game-state 1))
+	(newline)
+	(display "  Pile 2: ")
+	(display (size-of-pile game-state 2))
+	(newline)
+	(newline)))
+
+(define total-size
+  (lambda (game-state)
+	(+ (size-of-pile game-state 1)
+	   (size-of-pile game-state 2))))
+
+(define over?
+  (lambda (game-state)
+	(= (total-size game-state)
+	   0)))
+
+(define announce-winner
+  (lambda (player)
+	(if (equal? player 'human)
+		(display "You lose. Better luck next time!")
+		(display "You win. Conglaturations!"))
+	(newline)))
+
+(define prompt
+  (lambda (prompt-string legal?)
+	(newline)
+	(display prompt-string)
+	(newline)
+	(let ((response (read)))
+	  (if (legal? response)
+		  response
+		  (prompt prompt-string legal?)))))
+
+(define human-move
+  (lambda (game-state)
+	(let ((pile-number
+		   (prompt "Which pile would you like to take coins from? (1 or 2)"
+				   (lambda (n)
+					 (or (= n 1)
+						 (= n 2))))))
+	  (let ((num-coins
+			 (prompt (string-append
+					  "How many coins would you like to take? (Max "
+					  (number->string (size-of-pile game-state pile-number))
+					  ")")
+					 (lambda (n)
+					   (and (>= n 0)
+							(<= n
+								(size-of-pile game-state pile-number)))))))
+		(make-move-instruction num-coins pile-number)))))
+
+(define computer-move
+  (lambda (game-state)
+	(let ((pile-number (if (= (size-of-pile game-state 1)
+							  0)
+						   2
+						   1)))
+	  (display "I'll take 1 coin from pile ")
+	  (display pile-number)
+	  (display ".")
+	  (newline)
+	  (make-move-instruction 1 pile-number))))
+
+(define play-with-turns
+  (lambda (game-state player)
+	(display-game-state game-state)
+	(cond ((over? game-state)
+		   (announce-winner player))
+		  ((equal? player 'human)
+		   (play-with-turns (next-game-state game-state
+											 (human-move game-state))
+							'computer))
+		  ((equal? player 'computer)
+		   (play-with-turns (next-game-state game-state
+											 (computer-move game-state))
+							'human))
+		  (else
+		   (error 'play-with-turns
+				  "Player was neither human nor computer"
+				  player)))))
