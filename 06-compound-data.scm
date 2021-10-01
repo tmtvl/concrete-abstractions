@@ -1,9 +1,19 @@
-(import (rnrs (6)))
+(import (rnrs (6))
+		(srfi srfi-27))
 
 (define evenly-divisble-by?
   (lambda (x y)
 	(= (remainder x y)
 	   0)))
+
+(define random
+  (lambda (n)
+	(random-integer n)))
+
+(define square
+  (lambda (x)
+	(* x x)))
+
 ;;; Exercise 6.1
 ;; The advantage of having three operations, of which one is
 ;; remove-coins-from-pile with a limit is that it is easier to change the limit
@@ -347,3 +357,253 @@
 					  player)))))
 
 	(play game-state player)))
+
+;;; Exercise 6.15
+(define take-all-of-first-nonempty
+  (lambda (game-state)
+	(let ((size-1 (size-of-pile game-state 1)))
+	  (if (= size-1 0)
+		  (make-move-instruction (size-of-pile game-state 2)
+								 2)
+		  (make-move-instruction size-1 1)))))
+
+;;; Exercise 6.16
+(define take-one-from-random-pile
+  (lambda (game-state)
+	(let ((pile-number (+ (random 2)
+						  1)))
+	  (if (= (size-of-pile game-state pile-number)
+			 0)
+		  (make-move-instruction 1
+								 (- 3 pile-number))
+		  (make-move-instruction 1
+								 pile-number)))))
+
+;;; Exercise 6.17
+(define take-random-from-random-pile
+  (lambda (game-state)
+	(let ((size-1 (size-of-pile game-state 1))
+		  (size-2 (size-of-pile game-state 2))
+		  (random-pile (+ (random 2)
+						  1)))
+	  (cond ((= size-1 0)
+			 (make-move-instruction 2
+									(+ (random size-2)
+									   1)))
+			((= size-2 0)
+			 (make-move-instruction 1
+									(+ (random size-1)
+									   1)))
+			(else
+			 (make-move-instruction random-pile
+									(+ (random (if (= random-pile 1)
+												   size-1
+												   size-2))
+									   1)))))))
+
+;;; Exercise 6.18
+(define simple-strategy
+  (lambda (game-state)
+	(make-move-instruction 1
+						   (if (= (size-of-pile game-state 1)
+								  0)
+							   2
+							   1))))
+
+(define chocolate-square-strategy
+  (lambda (game-state)
+	(let ((size-1 (size-of-pile game-state 1))
+		  (size-2 (size-of-pile game-state 2)))
+	  (cond ((> size-1 size-2)
+			 (make-move-instruction (- size-1 size-2)
+									1))
+			((> size-2 size-1)
+			 (make-move-instruction (- size-2 size-1)
+									2))
+			(else
+			 ;; Technically we should resign, but that isn't implemented.
+			 (simple-strategy game-state))))))
+
+;;; Exercise 6.19
+(define random-mix-of
+  (lambda (strategy-a strategy-b)
+	(lambda (game-state)
+	  ((if (= (random 2)
+			  0)
+		   strategy-a
+		   strategy-b)
+	   game-state))))
+
+;;; Exercise 6.20
+(define computer-play-with-turns
+  (lambda (game-state strategy-a strategy-b)
+	(define announce-winner
+	  (lambda (victor)
+		(display "Player ")
+		(display victor)
+		(display " wins.")
+		(newline)))
+
+	(define play
+	  (lambda (game-state player opponent)
+		(display-game-state game-state)
+		(if (over? game-state)
+			(announce-winner opponent)
+			(play (computer-move game-state
+								 (if (equal? player 'a)
+									 strategy-a
+									 strategy-b))
+				  opponent
+				  player))))
+
+	(play game-state 'a 'b)))
+
+;;; Exercise 6.21
+;; (computer-play-with-turns gs ask-the-human simple-strategy) would be
+;; equivalent to our original implementation.
+;; (computer-play-with-turns gs sa ask-the-human) would be a regular game where
+;; the computer plays first.
+;; (computer-play-with-turns gs ask-the-human ask-the-human) would be a
+;; hot-seat two-player game.
+
+;;; Exercise 6.22
+;; A:
+;; (define mid-point
+;;   (lambda (interval)
+;;     (/ (+ (upper-endpoint interval)
+;;           (lower-endpoint interval))
+;;        2)))
+
+;; B:
+;; (define right-half
+;;   (lambda (interval)
+;;     (make-interval (mid-point interval)
+;;                    (upper-endpoint interval))))
+
+;;; Exercise 6.23
+;; A:
+(define sum-3d-vectors
+  (lambda (a b)
+    (make-3d-vector (+ (x-coord a)
+                       (x-coord b))
+                    (+ (y-coord a)
+                       (y-coord b))
+                    (+ (z-coord a)
+                       (z-coord b)))))
+
+(define 3d-vector-dot-product
+  (lambda (a b)
+    (+ (* (x-coord a)
+          (x-coord b))
+       (* (y-coord a)
+          (y-coord b))
+       (* (z-coord a)
+          (z-coord b)))))
+
+(define scale-3d-vector
+  (lambda (vec scale)
+    (make-3d-vector (* (x-coord vec)
+                       scale)
+                    (* (y-coord vec)
+                       scale)
+                    (* (z-coord vec)
+                       scale))))
+
+;; B:
+(define make-3d-vector
+  (lambda (x y z)
+	(cons x (cons y z))))
+
+(define x-coord
+  (lambda (vec)
+	(car vec)))
+
+(define y-coord
+  (lambda (vec)
+	(car (cdr vec))))
+
+(define z-coord
+  (lambda (vec)
+	(cdr (cdr vec))))
+
+;;; Exercise 6.24
+(define make-schedule-item
+  (lambda (room course time)
+	(lambda (x)
+	  (cond ((equal? x 'room)
+			 room)
+			((equal? x 'course)
+			 course)
+			((equal? x time)
+			 'time)
+			(else
+			 (error 'make-schedule-item
+					"Selector is room, course, nor time."
+					x))))))
+
+(define room
+  (lambda (schedule-item)
+	(schedule-item 'room)))
+
+(define course
+  (lambda (schedule-item)
+	(schedule-item 'course)))
+
+(define time
+  (lambda (schedule-item)
+	(schedule-item 'time)))
+
+;;; Exercise 6.25
+(define make-game-state-comparator
+  (lambda (cmp?)
+	(lambda (gs-a gs-b)
+	  (cmp? (total-size gs-a)
+			(total-size gs-b)))))
+
+(define game-state-<
+  (make-game-state-comparator <))
+
+(game-state-< (make-game-state 3 7)
+			  (make-game-state 1 12))
+;; #t
+
+(define game-state->
+  (make-game-state-comparator >))
+
+(game-state-> (make-game-state 3 7)
+			  (make-game-state 1 12))
+;; #f
+
+(game-state-> (make-game-state 13 7)
+			  (make-game-state 1 12))
+;; #t
+
+;;; Exercise 6.26
+;; A:
+(define make-point
+  (lambda (x y)
+	(cons x y)))
+
+(define x-coord
+  (lambda (point)
+	(car point)))
+
+(define y-coord
+  (lambda (point)
+	(cdr point)))
+
+;; B:
+(define distance
+  (lambda (p-a p-b)
+	(sqrt (+ (square (abs (- (x-coord p-a)
+							 (x-coord p-b))))
+			 (square (abs (- (y-coord p-a)
+							 (y-coord p-b))))))))
+
+(define pt-1
+  (make-point -1 -1))
+
+(define pt-2
+  (make-point -1 1))
+
+(distance pt-1 pt-2) ;; 2
