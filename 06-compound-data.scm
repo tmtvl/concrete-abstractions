@@ -284,7 +284,8 @@
 					   (and (>= n 0)
 							(<= n
 								(size-of-pile game-state pile-number)))))))
-		(make-move-instruction num-coins pile-number)))))
+		(next-game-state game-state
+						 (make-move-instruction num-coins pile-number))))))
 
 (define computer-move
   (lambda (game-state)
@@ -296,7 +297,8 @@
 	  (display pile-number)
 	  (display ".")
 	  (newline)
-	  (make-move-instruction 1 pile-number))))
+	  (next-game-state game-state
+					   (make-move-instruction 1 pile-number)))))
 
 (define play-with-turns
   (lambda (game-state player)
@@ -304,14 +306,44 @@
 	(cond ((over? game-state)
 		   (announce-winner player))
 		  ((equal? player 'human)
-		   (play-with-turns (next-game-state game-state
-											 (human-move game-state))
+		   (play-with-turns (human-move game-state)
 							'computer))
 		  ((equal? player 'computer)
-		   (play-with-turns (next-game-state game-state
-											 (computer-move game-state))
+		   (play-with-turns (computer-move game-state)
 							'human))
 		  (else
 		   (error 'play-with-turns
 				  "Player was neither human nor computer"
 				  player)))))
+
+;;; Exercise 6.14
+(define computer-move
+  (lambda (game-state strategy)
+	(let ((move (strategy game-state)))
+	  (display "I'll take ")
+	  (display (move-instruction-num-coins move))
+	  (display " from pile ")
+	  (display (move-instruction-pile-number move))
+	  (display ".")
+	  (newline)
+	  (next-game-state game-state move))))
+
+(define play-with-turns
+  (lambda (game-state player strategy)
+	(define play
+	  (lambda (game-state player)
+		(display-game-state game-state)
+		(cond ((over? game-state)
+			   (announce-winner player))
+			  ((equal? player 'human)
+			   (play (human-move game-state)
+					 'computer))
+			  ((equal? player 'computer)
+			   (play (computer-move game-state strategy)
+					 'human))
+			  (else
+			   (error 'play-with-turns
+					  "Player was neither human nor computer"
+					  player)))))
+
+	(play game-state player)))
