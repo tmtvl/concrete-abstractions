@@ -718,7 +718,7 @@
 					  (james caan)
 					  (robert duvall)
 					  (diane keaton)))
-		(make-movie '(boyz n the hood)
+		(make-movie '(boyz in the hood)
 					'(john singleton)
 					1991
 					'((cuba gooding jr.)
@@ -1241,74 +1241,72 @@
 ;;; Exercise 7.35
 (define substitutions-in-to-match
   (lambda (pattern question)
-	(define turn-pairs-into-double-list
-	  (lambda (pairs a d)
-		(if (null? pairs)
-			(cons (reverse a)
-				  (reverse d))
-			(turn-pairs-into-double-list (cdr pairs)
-										 (cons (car pairs)
-											   a)
-										 (cons (cdr pairs)
-											   d)))))
-
 	(define gather-substitutions
 	  (lambda (pattern question result)
-		(define find-ellipsis-matches
-		  (lambda (question trail results)
+		(define gather-...-substitutions
+		  (lambda (pattern question trail results)
 			(if (null? question)
-				(turn-pairs-into-double-list results '() '())
-				(let ((further-subs
-					   (gather-substitutions (cdr pattern)
-											 (cdr question)
-											 (list (car question)))))
-				  (find-ellipsis-matches (cdr question)
-										 (cons (car question)
-											   trail)
-										 (if (null? further-subs)
-											 results
-											 (cons (cons (reverse trail)
-														 further-subs)
-												   results)))))))
+				results
+				(let ((subresult (gather-substitutions pattern
+													   question
+													   (list
+														(reverse trail)))))
+				  (gather-...-substitutions pattern
+											(cdr question)
+											(cons (car question)
+												  trail)
+											(if (null? subresult)
+												results
+												(cons
+												 subresult
+												 results)))))))
+
+		(define continue
+		  (lambda (result)
+			(gather-substitutions (cdr pattern)
+								  (cdr question)
+								  result)))
 
 		(cond ((null? pattern)
 			   (if (null? question)
-				   result
+				   (reverse result)
 				   '()))
 			  ((null? question)
 			   '())
 			  ((equal? (car pattern)
-					   '...)
-			   (if (null? (cdr pattern))
-				   (cons question result)
-				   (find-ellipsis-matches question '() '())))
-			  ((equal? (car pattern)
 					   '_)
-			   (gather-substitutions (cdr pattern)
-									 (cdr question)
-									 (cons (car question)
-										   result)))
+			   (continue (cons (car question)
+							   result)))
 			  ((list? (car pattern))
 			   (if (member (car question)
 						   (car pattern))
-				   (gather-substitutions (cdr pattern)
-										 (cdr question)
-										 (cons (car question)
-											   result))
+				   (continue (cons (car question)
+								   result))
 				   '()))
 			  ((equal? (car pattern)
+					   '...)
+			   (if (null? (cdr pattern))
+				   (append (reverse result)
+						   question)
+				   (let ((...-results
+						  (reverse
+						   (gather-...-substitutions (cdr pattern)
+													 (cdr question)
+													 (list (car question))
+													 '()))))
+					 (if (null? ...-results)
+						 '()
+						 (append (reverse result)
+								 (list (map car ...-results)
+									   (map cdr ...-results)))))))
+			  ((equal? (car pattern)
 					   (car question))
-			   (gather-substitutions (cdr pattern)
-									 (cdr question)
-									 result))
+			   (continue result))
 			  (else
 			   '()))))
 
 	(gather-substitutions pattern question '())))
 
-(substitutions-in-to-match '(list ...)
-						   '(list a))
-;; ((a))
-(substitutions-in-to-match '(list ...)
-						   '(list a b c))
-;; ((a b c))
+(substitutions-in-to-match '(do you have ... in ...)
+						   '(do you have boyz in the hood in the store))
+;; (((boyz) (boyz in the hood)) ((the hood in the store) (the store)))
