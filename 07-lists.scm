@@ -3,6 +3,10 @@
 (define square
   (lambda (x)
 	(* x x)))
+
+(define cube
+  (lambda (x)
+	(* x x x)))
 ;;; Exercise 7.1
 ;; A: We get the list (#procedure 2 3) because + refers to a procedure that
 ;; does the addition.
@@ -1354,3 +1358,325 @@
 				(if (null? result)
 					(display '(i do not know))
 					(display result))))))))
+
+;;; Exercise 7.36
+(define movie-p/a-list
+  (list (make-pattern/action
+		 '(who is the director of ...)
+		 (lambda (title)
+		   (the-only-element-in
+			(movies-satisfying
+			 our-movie-database
+			 (lambda (movie)
+			   (equal? (movie-title movie)
+					   title))
+			 movie-director))))
+		(make-pattern/action
+		 '(what (movie movies) (was were) made (in before after since) _)
+		 (lambda (noun verb relation year)
+		   (movies-satisfying
+			our-movie-database
+			(lambda (movie)
+			  ((cond ((equal? relation 'in)
+					  =)
+					 ((equal? relation 'before)
+					  <)
+					 ((equal? relation 'after)
+					  >)
+					 ((equal? relation 'since)
+					  >=)
+					 (else
+					  (error 'match-year
+							 "Unknown relation."
+							 relation)))
+			   (movie-year-made movie)
+			   year))
+			movie-title)))
+		(make-pattern/action
+		 '(what (movie movies) (was were) made between _ and _)
+		 (lambda (noun verb year1 year2)
+		   (let ((since (min year1 year2))
+				 (to (max year1 year2)))
+			 (movies-satisfying
+			  our-movie-database
+			  (lambda (movie)
+				(and (>= (movie-year-made movie)
+						 since)
+					 (<= (movie-year-made movie)
+						 to)))
+			  movie-title))))
+		(make-pattern/action
+		 '(when was ... made)
+		 (lambda (title)
+		   (movies-satisfying
+			our-movie-database
+			(lambda (movie)
+			  (equal? (movie-title movie)
+					  title))
+			movie-year-made)))
+		(make-pattern/action
+		 '(who played in movies directed by ...)
+		 (lambda (director)
+		   (movies-satisfying
+			our-movie-database
+			(lambda (movie)
+			  (equal? (movie-director movie)
+					  director))
+			movie-actors)))
+		(make-pattern/action
+		 '(who played (together alongside) with ...)
+		 (lambda (actor)
+		   our-movie-database
+		   (lambda (movie)
+			 (member actor
+					 (movie-actors movie)))
+		   movie-actors))))
+
+;;; Exercise 7.37
+;; add something like (if (equal? (car pattern) 'number?)) in.
+
+;;; Exercise 7.38
+;; add something like (if (list? (car pattern)) match-alternative-from)
+
+;;; Exercise 7.39
+;; Base case:
+;; (sevens 0) returns an empty list, due to the evaluation rules of if.
+
+;; Induction hypothesis:
+;; (sevens k) returns a list of length k, for all k in the range 0 <= k < n.
+
+;; Inductive step:
+;; For any positive integer n, (sevens n) returns (cons 7 (sevens (- n 1))).
+;; Per our induction hypothesis, this means we cons 7 onto a list of length n -
+;; 1. Therefore we create a list of length (n - 1) + 1 = n.
+
+;; Conclusion:
+;; Therefore we can prove through mathematical induction that (sevens n) will
+;; return a list of length n for any nonnegative integer n.
+
+;;; Exercise 7.40
+(define function-sum
+  (lambda (list-of-functions)
+	(lambda (x)
+	  (define sum
+		(lambda (functions result)
+		  (if (null? functions)
+			  result
+			  (sum (cdr functions)
+				   (+ ((car functions) x)
+					  result)))))
+
+	  (sum list-of-functions 0))))
+
+((function-sum (list square cube)) 2) ;; 12
+
+;;; Exercise 7.41
+(define square-sum
+  (lambda (lst)
+	(define sum
+	  (lambda (lst result)
+		(if (null? lst)
+			result
+			(sum (cdr lst)
+				 (+ (square (car lst))
+					result)))))
+
+	(sum lst 0)))
+
+;;; Exercise 7.42
+(define apply-all
+  (lambda (procs n)
+	(map (lambda (proc)
+		   (proc n))
+		 procs)))
+
+(apply-all (list sqrt square cube) 4)
+;; (2 16 64)
+
+;;; Exercise 7.43
+;; Base case:
+;; (seventeens 0) returns a list of length 0 = 2 * 0. Therefore our theorem
+;; holds.
+
+;; Induction hypothesis:
+;; (seventeens k) returns a list of length 2 * k for all k in the range 0 <= k
+;; <= n.
+
+;; Inductive step:
+;; (seventeens n) returns (cons 17 (cons 17 (seventeens (- n 1)))). Per our
+;; induction hypothesis, (seventeens (- n 1)) returns a list of length (n - 1)
+;; * 2 = (2 * n) - 2. On that we cons 17 twice, increasing the length of the
+;; list by 2. (2 * n) - 2 + 2 = 2 * n.
+
+;; Conclusion:
+;; Therefore we can prove through mathematical induction that for any
+;; nonnegative integer n, (seventeens n) returns a list of length 2 * n.
+
+;;; Exercise 7.44
+;; A: (length lst) does n cdrs where n is the amount of elements in lst.
+
+;; B: last will make (min 1 n) calls to length where n is the amount of
+;; elements in lst.
+
+;; C: Last will make O(n ^ 2) calls to cdr through the combination of direct
+;; calls and calls through length.
+
+;; D: total number of cdrs = (min 1 (n * n)).
+
+;;; Exercise 7.45
+(define make-couple
+  (lambda (x y)
+	(cons x y)))
+
+(define smaller
+  (lambda (couple)
+	(min (car couple)
+		 (cdr couple))))
+
+(define larger
+  (lambda (couple)
+	(max (car couple)
+		 (cdr couple))))
+
+(define make-couple
+  (lambda (x y)
+	(cons (min x y)
+		  (max x y))))
+
+(define smaller
+  (lambda (couple)
+	(car couple)))
+
+(define larger
+  (lambda (couple)
+	(cdr couple)))
+
+;;; Exercise 7.46
+(define make-list-scaler
+  (lambda (scale)
+	(lambda (lst)
+	  (map (lambda (x)
+			 (* x scale))
+		   lst))))
+
+(define scale-by-5
+  (make-list-scaler 5))
+
+(scale-by-5 '(1 2 3 4))
+;; (5 10 15 20)
+
+;;; Exercise 7.47
+(define map-2
+  (lambda (proc lst1 lst2)
+	(define iter
+	  (lambda (l1 l2 res)
+		(if (null? l1)
+			res
+			(iter (cdr l1)
+				  (cdr l2)
+				  (cons (proc (car l1)
+							  (car l2))
+						res)))))
+
+	(reverse (iter lst1 lst2 '()))))
+
+(map-2 + '(1 2 3) '(2 0 -5))
+;; (3 2 -2)
+(map-2 * '(1 2 3) '(2 0 -5))
+;; (2 0 -15)
+
+;;; Exercise 7.48
+;; (sub1-each '(5 4 3))
+;; (help '(5 4 3) '())
+;; (if (null? '(5 4 3))
+;;     (reverse '())
+;;     (help (cdr '(5 4 3))
+;;           (cons (- (car '(5 4 3)) 1) '())))
+;; (help '(4 3) '(4))
+;; (if (null? '(4 3))
+;;     (reverse '(4))
+;;     (help (cdr '(4 3))
+;;           (cons (- (car '(4 3)) 1) '(4))))
+;; (help '(3) '(3 4))
+;; (if (null? '(3))
+;;     (reverse '(3 4))
+;;     (help (cdr '(3))
+;;           (cons (- (car '(3)) 1) '(3 4))))
+;; (help '() '(2 3 4))
+;; (if (null? '())
+;;     (reverse '(2 3 4))
+;;     (help (cdr '())
+;;           (cons (- (car '()) 1) '(2 3 4))))
+;; '(4 3 2)
+;; This is an iterative process.
+
+;;; Exercise 7.49
+(define all-are
+  (lambda (pred?)
+	(lambda (lst)
+	  (null? (filter (lambda (x)
+					   (not (pred? x)))
+					 lst)))))
+
+((all-are positive?) '(1 2 3 4)) ;; #t
+((all-are even?) '(2 4 5 6 8)) ;; #f
+
+;;; Exercise 7.50
+;; A:
+;; repeat generates a recursive process as it leaves the cons step for later,
+;; after the smaller work has been done.
+
+;; B:
+(define repeat
+  (lambda (num times)
+	(define iter
+	  (lambda (times res)
+		(if (= times 0)
+			res
+			(iter (- times 1)
+				  (cons num res)))))
+
+	(iter times '())))
+
+(repeat 17 5)
+;; (17 17 17 17 17)
+
+;;; Exercise 7.51
+;; A:
+;; (expand '(3 ho merry-xmas))
+;; (cons 'ho
+;;       (expand (cons 2 '(ho merry-xmas))))
+;; (cons 'ho
+;;       (cons 'ho
+;;             (expand (cons 1 '(ho merry-xmas)))))
+;; (cons 'ho
+;;       (cons 'ho
+;;             (cons 'ho (expand '(merry-xmas)))))
+;; (cons 'ho
+;;       (cons 'ho
+;;             (cons 'ho '(merry-xmas))))
+;; (cons 'ho
+;;       (cons 'ho '(ho merry-xmas)))
+;; (cons 'ho '(ho ho merry-xmas))
+;; '(ho ho ho merry-xmas)
+
+;; B:
+;; Recursive, as it holds off on the consing until after the cdr has been
+;; constructed.
+
+;;; Exercise 7.52
+(define make-list-combiner
+  (lambda (proc)
+	(lambda (lst1 lst2)
+	  (map proc lst1 lst2))))
+
+(define list+
+  (make-list-combiner +))
+
+(define list*
+  (make-list-combiner *))
+
+(list+ '(1 2 3) '(2 4 6))
+;; (3 6 9)
+(list* '(1 2 3) '(2 4 6))
+;; (2 8 18)
