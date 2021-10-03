@@ -1239,74 +1239,118 @@
 			movie-year-made)))))
 
 ;;; Exercise 7.35
+(define gather-...-substitutions
+  (lambda (pattern question substitutions)
+	(define all-valid-permutations
+	  (lambda (question trail permutations)
+		(if (null? question)
+			(if (null? (cadr permutations))
+				(car permutations)
+				permutations)
+			(let ((new-trail (cons (car question)
+								   trail)))
+			  (if (equal? (car question)
+						  (car pattern))
+				  (let ((continuations (gather-substitutions pattern
+															 question
+															 '())))
+					(all-valid-permutations (cdr question)
+											new-trail
+											(if continuations
+												(list
+												 (cons trail
+													   (car permutations))
+												 (if (null? continuations)
+													 (cadr permutations)
+													 (cons continuations
+														   (cadr permutations))))
+												permutations)))
+				  (all-valid-permutations (cdr question)
+										  new-trail
+										  permutations))))))
+
+	(if (null? pattern)
+		question
+		(all-valid-permutations (cdr question)
+								(list (car question))
+								'(() ())))))
+
+(define gather-substitutions
+  (lambda (pattern question substitutions)
+	(define recur
+	  (lambda (substitutions)
+		(gather-substitutions (cdr pattern)
+							  (cdr question)
+							  substitutions)))
+
+	(define continue
+	  (lambda ()
+		(recur substitutions)))
+
+	(define take-and-continue
+	  (lambda ()
+		(recur (cons (car question)
+					 substitutions))))
+
+	(cond ((null? pattern)
+		   (if (null? question)
+			   (reverse substitutions)
+			   #f))
+		  ((null? question)
+		   #f)
+		  ((equal? (car pattern)
+				   '...)
+		   (let ((...-subs (gather-...-substitutions (cdr pattern)
+													 question
+													 '())))
+			 (cond ((null? ...-subs)
+					#f)
+				   ((null? substitutions)
+					...-subs)
+				   (else
+					(append (reverse substitutions)
+							...-subs)))))
+		  ((equal? (car pattern)
+				   '_)
+		   (take-and-continue))
+		  ((list? (car pattern))
+		   (if (member (car question)
+					   (car pattern))
+			   (take-and-continue)
+			   #f))
+		  ((equal? (car pattern)
+				   (car question))
+		   (continue))
+		  (else
+		   #f))))
+
 (define substitutions-in-to-match
   (lambda (pattern question)
-	(define gather-substitutions
-	  (lambda (pattern question result)
-		(define gather-...-substitutions
-		  (lambda (pattern question trail results)
-			(if (null? question)
-				results
-				(let ((subresult (gather-substitutions pattern
-													   question
-													   (list
-														(reverse trail)))))
-				  (gather-...-substitutions pattern
-											(cdr question)
-											(cons (car question)
-												  trail)
-											(if (null? subresult)
-												results
-												(cons
-												 subresult
-												 results)))))))
+	(let ((subs (gather-substitutions pattern question '())))
+	  (if subs subs '()))))
 
-		(define continue
-		  (lambda (result)
-			(gather-substitutions (cdr pattern)
-								  (cdr question)
-								  result)))
-
-		(cond ((null? pattern)
-			   (if (null? question)
-				   (reverse result)
-				   '()))
-			  ((null? question)
-			   '())
-			  ((equal? (car pattern)
-					   '_)
-			   (continue (cons (car question)
-							   result)))
-			  ((list? (car pattern))
-			   (if (member (car question)
-						   (car pattern))
-				   (continue (cons (car question)
-								   result))
-				   '()))
-			  ((equal? (car pattern)
-					   '...)
-			   (if (null? (cdr pattern))
-				   (append (reverse result)
-						   question)
-				   (let ((...-results
-						  (reverse
-						   (gather-...-substitutions (cdr pattern)
-													 (cdr question)
-													 (list (car question))
-													 '()))))
-					 (if (null? ...-results)
-						 '()
-						 (append (reverse result)
-								 (list (map car ...-results)
-									   (map cdr ...-results)))))))
-			  ((equal? (car pattern)
-					   (car question))
-			   (continue result))
-			  (else
-			   '()))))
-
-	(gather-substitutions pattern question '())))
-
+(substitutions-in-to-match '(who directed ...)
+						   '(who directed the godfather))
+;; (the godfather)
 (substitutions-in-to-match '(do you have ... in ...)
 						   '(do you have boyz in the hood in the store))
-;; (((boyz) (boyz in the hood)) ((the hood in the store) (the store)))
+;; (((hood the in boyz) (boyz)) ((the store) ((the hood in the store))))
+(substitutions-in-to-match '(what movies did ... act in)
+						   '(what movies did buster keaton act in))
+;; ((keaton buster))
+
+(define answer-by-pattern
+  (lambda (query p/a-list)
+	(if (null? p/a-list)
+		(display '(i do not understand))
+		(let ((subs (substitutions-in-to-match
+						(pattern (car p/a-list))
+						query)))
+		  (if (null? subs)
+			  (answer-by-pattern query
+								 (cdr p/a-list))
+			  (let ((result (apply (action (car p/a-list))
+								   subs)))
+				(if (null? result)
+					(display '(i do not know))
+					(display result))))))))
