@@ -1433,10 +1433,160 @@
 		   movie-actors))))
 
 ;;; Exercise 7.37
-;; add something like (if (equal? (car pattern) 'number?)) in.
+(define gather-substitutions
+  (lambda (pattern question substitutions)
+	(define recur
+	  (lambda (substitutions)
+		(gather-substitutions (cdr pattern)
+							  (cdr question)
+							  substitutions)))
+
+	(define continue
+	  (lambda ()
+		(recur substitutions)))
+
+	(define take-and-continue
+	  (lambda ()
+		(recur (cons (car question)
+					 substitutions))))
+
+	(cond ((null? pattern)
+		   (if (null? question)
+			   (reverse substitutions)
+			   #f))
+		  ((null? question)
+		   #f)
+		  ((equal? (car pattern)
+				   '...)
+		   (let ((...-subs (gather-...-substitutions (cdr pattern)
+													 question
+													 '())))
+			 (cond ((null? ...-subs)
+					#f)
+				   ((null? substitutions)
+					...-subs)
+				   (else
+					(append (reverse substitutions)
+							...-subs)))))
+		  ((equal? (car pattern)
+				   'number?)
+		   (if (number? (car question))
+			   (take-and-continue)
+			   '()))
+		  ((equal? (car pattern)
+				   '_)
+		   (take-and-continue))
+		  ((list? (car pattern))
+		   (if (member (car question)
+					   (car pattern))
+			   (take-and-continue)
+			   #f))
+		  ((equal? (car pattern)
+				   (car question))
+		   (continue))
+		  (else
+		   #f))))
+
+(substitutions-in-to-match '(greater than number?)
+						   '(greater than 37))
+;; (37)
 
 ;;; Exercise 7.38
-;; add something like (if (list? (car pattern)) match-alternative-from)
+(define match-alternatives
+  (lambda (alternatives question)
+	(define gather-alternative
+	  (lambda (alternative question result)
+		(cond ((null? alternative)
+			   (cons (reverse result)
+					 question))
+			  ((equal? (car alternative)
+					   (car question))
+			   (gather-alternative (cdr alternative)
+								   (cdr question)
+								   (cons (car question)
+										 result)))
+			  (else
+			   '()))))
+
+	(cond ((null? alternatives)
+		   '())
+		  ((equal? (car alternatives)
+				   (car question))
+		   (cons (list (car question))
+				 (cdr question)))
+		  ((list? (car alternatives))
+		   (let ((res (gather-alternative (car alternatives)
+										  question
+										  '())))
+			 (if (null? res)
+				 (match-alternatives (cdr alternatives)
+									 question)
+				 res)))
+		  (else
+		   (match-alternatives (cdr alternatives)
+							   question)))))
+
+(define gather-substitutions
+  (lambda (pattern question substitutions)
+	(define recur
+	  (lambda (substitutions)
+		(gather-substitutions (cdr pattern)
+							  (cdr question)
+							  substitutions)))
+
+	(define continue
+	  (lambda ()
+		(recur substitutions)))
+
+	(define take-and-continue
+	  (lambda ()
+		(recur (cons (car question)
+					 substitutions))))
+
+	(cond ((null? pattern)
+		   (if (null? question)
+			   (reverse substitutions)
+			   #f))
+		  ((null? question)
+		   #f)
+		  ((equal? (car pattern)
+				   '...)
+		   (let ((...-subs (gather-...-substitutions (cdr pattern)
+													 question
+													 '())))
+			 (cond ((null? ...-subs)
+					#f)
+				   ((null? substitutions)
+					...-subs)
+				   (else
+					(append (reverse substitutions)
+							...-subs)))))
+		  ((equal? (car pattern)
+				   'number?)
+		   (if (number? (car question))
+			   (take-and-continue)
+			   '()))
+		  ((equal? (car pattern)
+				   '_)
+		   (take-and-continue))
+		  ((list? (car pattern))
+		   (let ((the-match (match-alternatives (car pattern)
+												question)))
+			 (if (null? the-match)
+				 '()
+				 (gather-substitutions (cdr pattern)
+									   (cdr the-match)
+									   (cons (car the-match)
+											 substitutions)))))
+		  ((equal? (car pattern)
+				   (car question))
+		   (continue))
+		  (else
+		   #f))))
+
+(substitutions-in-to-match '(the ((pig was) (pigs were)) _)
+						   '(the pig was old))
+;; ((pig was) old)
 
 ;;; Exercise 7.39
 ;; Base case:
