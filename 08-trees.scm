@@ -299,3 +299,112 @@
 ;; For a short, bushy tree we want the values to be mixed up, preferably with
 ;; the averages in front. For a tall, skinny tree we want the values to be
 ;; ordered.
+
+;;; Exercise 8.8
+(define leaf?
+  (lambda (tree)
+	(and (not (empty-tree? tree))
+		 (empty-tree? (left-subtree tree))
+		 (empty-tree? (right-subtree tree)))))
+
+;;; Exercise 8.9
+(define tree-height
+  (lambda (tree)
+	(if (empty-tree? tree)
+		0
+		(+ (max (tree-height (left-subtree tree))
+				(tree-height (right-subtree tree)))
+		   1))))
+
+(tree-height test-tree)
+;; 3
+
+;;; Exercise 8.10
+;; Base case:
+;; A tree of height 0, per evaluation of if, occurs if the tree is empty, and
+;; thus consists of only a null node. As (2 ^ (0 + 1)) - 1 = 2 - 1 = 1, our
+;; theorem holds.
+
+;; Induction theory:
+;; A tree of height k has (2 ^ (k + 1)) - 1 nodes for any k in the range 0 <= k
+;; < h.
+
+;; Inductive step:
+;; A tree of height h has 1 node + 2 times the nodes of a tree of height h - 1.
+;; Per our inductive step a tree of height h - 1 has (2 ^ ((h - 1) + 1)) - 1 =
+;; (2 ^ h) - 1 nodes. Therefore a tree of height h has (2 * ((2 ^ h) - 1)) + 1
+;; = ((2 ^ (h + 1)) - 2) + 1 = (2 ^ (h + 1)) - 1 nodes.
+
+;; Conclusion:
+;; Therefore we can prove through mathematical induction that a tree of height
+;; h has (2 ^ (h + 1)) - 1 nodes for any nonnegative integer h.
+
+;;; Exercise 8.11
+;; nodes(h)
+;; |= 1 if h = 0.
+;; |= 1 + m * nodes(h - 1) if h > 0.
+;;
+;; nodes(h) = (m ^ h) + (m ^ (h - 1)) + ... + m ^ 2 + m + 1.
+
+;;; Exercise 8.12
+(define take
+  (lambda (n lst)
+	(if (= n 0)
+		'()
+		(cons (car lst)
+			  (take (- n 1)
+					(cdr lst))))))
+
+(define drop
+  (lambda (n lst)
+	(if (= n 0)
+		lst
+		(drop (- n 1)
+			  (cdr lst)))))
+
+(define split
+  (lambda (n lst)
+	(cons (take n lst)
+		  (drop n lst))))
+
+(define sorted-list->min-height-bstree
+  (lambda (lst)
+	(cond ((null? lst)
+		   (make-empty-tree))
+		  ((null? (cdr lst))
+		   (insert (car lst)
+				   (make-empty-tree)))
+		  (else
+		   (let ((lsts (split (quotient (length lst)
+										2)
+							  lst)))
+			 (make-nonempty-tree (cadr lsts)
+								 (sorted-list->min-height-bstree
+								  (car lsts))
+								 (sorted-list->min-height-bstree
+								  (cddr lsts))))))))
+
+(sorted-list->min-height-bstree '(1 2 3 4 5 6))
+;; (4 (2 (1 () ()) (3 () ())) (6 (5 () ()) ()))
+;;      4
+;;    _/ \_
+;;   2     6
+;;  / \   /
+;; 1   3 5
+
+;;; Exercise 8.13
+(define optimize-bstree
+  (lambda (tree)
+	(sorted-list->min-height-bstree
+	 (inorder tree))))
+
+(define long-tree
+  (list->bstree '(1 2 3 4 5 6)))
+long-tree ;; (1 () (2 () (3 () (4 () (5 () (6 () ()))))))
+(optimize-bstree long-tree)
+;; (4 (2 (1 () ()) (3 () ())) (6 (5 () ()) ()))
+
+;;; Exercise 8.14
+(let ((sort (lambda (lst) (inorder (list->bstree lst)))))
+  (sort '(5 7 1 4 2 9 8 6 3)))
+;; (1 2 3 4 5 6 7 8 9)
