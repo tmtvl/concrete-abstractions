@@ -408,3 +408,102 @@ long-tree ;; (1 () (2 () (3 () (4 () (5 () (6 () ()))))))
 (let ((sort (lambda (lst) (inorder (list->bstree lst)))))
   (sort '(5 7 1 4 2 9 8 6 3)))
 ;; (1 2 3 4 5 6 7 8 9)
+
+;;; Exercise 8.15
+(define make-constant
+  (lambda (x)
+	x))
+
+(define constant? number?)
+
+(define make-expr
+  (lambda (left-operand operator right-operand)
+	(list left-operand operator right-operand)))
+
+(define operator cadr)
+(define left-operand car)
+(define right-operand caddr)
+
+(define look-up-value
+  (lambda (name)
+	(cond ((equal? name '+)
+		   +)
+		  ((equal? name '*)
+		   *)
+		  ((equal? name '-)
+		   -)
+		  ((equal? name '/)
+		   /)
+		  (else
+		   (error 'look-up-value
+				  "Unrecognised name"
+				  name)))))
+
+(define evaluate
+  (lambda (expr)
+	(cond ((constant? expr)
+		   expr)
+		  (else
+		   ((look-up-value (operator expr))
+			(evaluate (left-operand expr))
+			(evaluate (right-operand expr)))))))
+
+(evaluate
+ (make-expr
+  1
+  '+
+  (make-expr
+   2
+   '*
+   (make-expr 3
+			  '-
+			  '5))))
+;; -3
+
+;;; Exercise 8.16
+(define all-operators
+  (lambda (expr)
+	(define enumerate-operators
+	  (lambda (expr-to-check remaining-exprs operators)
+		(cond ((not (constant? expr-to-check))
+			   (enumerate-operators (left-operand expr-to-check)
+									(cons (right-operand expr-to-check)
+										  remaining-exprs)
+									(if (member (operator expr-to-check)
+												operators)
+										operators
+										(cons (operator expr-to-check)
+											  operators))))
+			  ((null? remaining-exprs)
+			   operators)
+			  (else
+			   (enumerate-operators (car remaining-exprs)
+									(cdr remaining-exprs)
+									operators)))))
+
+	(enumerate-operators expr '() '())))
+
+(all-operators '(1 + (2 * (3 - 5))))
+;; (- * +)
+
+;;; Exercise 8.17
+(define count-operations
+  (lambda (expr)
+	(define enumerate-operations
+	  (lambda (expr-to-check remaining-exprs operations)
+		(cond ((not (constant? expr-to-check))
+			   (enumerate-operations (left-operand expr-to-check)
+									 (cons (right-operand expr-to-check)
+										   remaining-exprs)
+									 (+ operations 1)))
+			  ((null? remaining-exprs)
+			   operations)
+			  (else
+			   (enumerate-operations (car remaining-exprs)
+									 (cdr remaining-exprs)
+									 operations)))))
+
+	(enumerate-operations expr '() 0)))
+
+(count-operations '(1 + (2 * (3 - 5))))
+;; 3
