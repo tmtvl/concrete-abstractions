@@ -842,3 +842,65 @@ long-tree ;; (1 () (2 () (3 () (4 () (5 () (6 () ()))))))
 					  (make-person 'maillard   7477)
 					  (make-person 'see        7463)
 					  (make-person 'perugina   7007))))
+
+;;; Exercise 8.30
+(define successor-of-in-or
+  (lambda (value bst if-none)
+	(cond ((empty-tree? bst)
+		   if-none)
+		  ((<= (root bst)
+			   value)
+		   (successor-of-in-or value
+							   (right-subtree bst)
+							   if-none))
+		  (else
+		   (successor-of-in-or value
+							   (left-subtree bst)
+							   (root bst))))))
+
+;;; Exercise 8.31
+(define count-nodes-between
+  (lambda (bst lower upper)
+	(cond ((empty-tree? bst)
+		   0)
+		  ((< (root bst)
+			  lower)
+		   (count-nodes-between (right-subtree bst)
+								lower
+								upper))
+		  ((> (root bst)
+			  upper)
+		   (count-nodes-between (left-subtree bst)
+								lower
+								upper))
+		  (else
+		   (+ 1
+			  (count-nodes-between (left-subtree bst)
+								   lower
+								   upper)
+			  (count-nodes-between (right-subtree bst)
+								   lower
+								   upper))))))
+
+;;; Exercise 8.32
+(define list-nodes-between
+  (lambda (bst lower upper)
+	(define between-onto
+	  (lambda (bst lst)
+		(cond ((empty-tree? bst)
+			   lst)
+			  ((< (root bst)
+				  lower)
+			   (between-onto (right-subtree bst)
+							 lst))
+			  ((> (root bst)
+				  upper)
+			   (between-onto (left-subtree bst)
+							 lst))
+			  (else
+			   (between-onto (left-subtree bst)
+							 (cons (root bst)
+								   (between-onto (right-subtree bst)
+												 lst)))))))
+
+	(between-onto bst '())))
