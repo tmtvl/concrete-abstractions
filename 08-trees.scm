@@ -507,3 +507,338 @@ long-tree ;; (1 () (2 () (3 () (4 () (5 () (6 () ()))))))
 
 (count-operations '(1 + (2 * (3 - 5))))
 ;; 3
+
+
+(define make-empty-trie
+  (lambda ()
+	'()))
+
+(define make-nonempty-trie
+  (lambda (root-values ordered-subtries)
+	(list root-values ordered-subtries)))
+
+(define empty-trie? null?)
+
+(define root-values car)
+
+(define subtries cadr)
+
+(define subtrie-with-label
+  (lambda (trie label)
+	(list-ref (subtries trie)
+			  (- label 2))))
+
+(define make-person
+  (lambda (name phone-number)
+	(list name phone-number)))
+
+(define name car)
+
+(define phone-number cadr)
+
+(define menu
+  (lambda ()
+	(newline)
+	(display "Enter the name, one digit at a time.")
+	(newline)
+	(display "Indicate you are done by 0.")
+	(newline)))
+
+(define display-phone-numbers
+  (lambda (people)
+	(define display-loop
+	  (lambda (people)
+		(cond ((null? people)
+			   'done)
+			  (else (newline)
+					(display (name (car people)))
+					(display "'s phone number is: ")
+					(display (phone-number (car people)))
+					(display-loop (cdr people))))))
+
+	(if (null? people)
+		(display "Sorry, we can't find that name.")
+		(display-loop people))))
+
+(define look-up-phone-number
+  (lambda (phone-trie)
+	(newline)
+	(if (empty-trie? phone-trie)
+		(display "Sorry, we can't find that name.")
+		(let ((user-input (read)))
+		  (if (= user-input 0)
+			  (display-phone-numbers (root-values phone-trie))
+			  (look-up-phone-number (subtrie-with-label
+									 phone-trie
+									 user-input)))))))
+
+(define look-up-with-menu
+  (lambda (phone-trie)
+	(menu)
+	(look-up-phone-number phone-trie)))
+
+(define test-trie
+  (make-nonempty-trie '(1 2)
+					  (list (make-nonempty-trie '(3 4)
+												(list (make-empty-trie)
+													  (make-empty-trie)))
+							(make-empty-trie))))
+
+;;; Exercise 8.18
+(define number-in-trie
+  (lambda (trie)
+	(if (empty-trie? trie)
+		0
+		(apply +
+			   (cons (length (root-values trie))
+					 (map number-in-trie
+						  (subtries trie)))))))
+
+(number-in-trie test-trie)
+;; 4
+
+;;; Exercise 8.19
+(define values-in-trie
+  (lambda (trie)
+	(if (empty-trie? trie)
+		'()
+		(apply append
+			   (cons (root-values trie)
+					 (map values-in-trie
+						  (subtries trie)))))))
+
+(values-in-trie test-trie)
+;; (1 2 3 4)
+
+;;; Exercise 8.19
+;; A:
+(define look-up-phone-number
+  (lambda (phone-trie)
+	(newline)
+	(cond ((empty-trie? phone-trie)
+		   (display "Sorry, we can't find that name."))
+		  ((< (number-in-trie phone-trie)
+			  2)
+		   (display-phone-numbers (values-in-trie phone-trie)))
+		  (else
+		   (let ((user-input (read)))
+			 (if (= user-input 0)
+				 (display-phone-numbers (root-values phone-trie))
+				 (look-up-phone-number (subtrie-with-label
+										phone-trie
+										user-input))))))))
+;; B:
+(define menu
+  (lambda ()
+	(newline)
+	(display "Enter the name, one digit at a time.")
+	(newline)
+	(display "Indicate you are done by 0.")
+	(newline)
+	(display "Display the possible names with 1.")
+	(newline)))
+
+(define look-up-phone-number
+  (lambda (phone-trie)
+	(newline)
+	(cond ((empty-trie? phone-trie)
+		   (display "Sorry, we can't find that name."))
+		  ((< (number-in-trie phone-trie)
+			  2)
+		   (display-phone-numbers (values-in-trie phone-trie)))
+		  (else
+		   (let ((user-input (read)))
+			 (cond ((= user-input 0)
+					(display-phone-numbers (root-values phone-trie)))
+				   ((= user-input 1)
+					(display (map name
+								  (values-in-trie phone-trie)))
+					(look-up-phone-number phone-trie))
+				   (else
+					(look-up-phone-number (subtrie-with-label
+										   phone-trie
+										   user-input)))))))))
+
+;;; Exercise 8.21
+(define letter->number
+  (lambda (letter)
+	(cond ((member letter
+				   '(A a B b C c))
+		   2)
+		  ((member letter
+				   '(D d E e F f))
+		   3)
+		  ((member letter
+				   '(G g H h I i))
+		   4)
+		  ((member letter
+				   '(J j K k L l))
+		   5)
+		  ((member letter
+				   '(M m N n O o))
+		   6)
+		  ((member letter
+				   '(P p Q q R r S s))
+		   7)
+		  ((member letter
+				   '(T t U u V v))
+		   8)
+		  ((member letter
+				   '(W w X x Y y Z z))
+		   9)
+		  (else
+		   (error 'letter->number
+				  "Unknown letter."
+				  letter)))))
+
+(map letter->number
+	 '(a l y s s a))
+;; (2 5 9 7 7 2)
+
+;;; Exercise 8.22
+(define explode-symbol
+  (lambda (sym)
+	(map string->symbol
+		 (map string
+			  (string->list
+			   (symbol->string sym))))))
+
+(define name->labels
+  (lambda (name)
+	(map letter->number
+		 (explode-symbol name))))
+
+(name->labels 'ritter)
+;; (7 4 8 8 3 7)
+
+(define make-labeled-value
+  (lambda (labels value)
+	(list labels value)))
+
+(define labels car)
+
+(define value cadr)
+
+;;; Exercise 8.23
+(define empty-labels?
+  (lambda (labeled-value)
+	(null? (labels labeled-value))))
+
+;;; Exercise 8.24
+(define first-label
+  (lambda (labeled-value)
+	(car (labels labeled-value))))
+
+;;; Exercise 8.25
+(define strip-one-label
+  (lambda (labeled-value)
+	(make-labeled-value
+	 (cdr (labels labeled-value))
+	 (value labeled-value))))
+
+(define labeled-ritter
+  (make-labeled-value '(7 4 8 8 3 7)
+					  (make-person 'ritter
+								   7479)))
+
+(labels (strip-one-label labeled-ritter))
+;; (4 8 8 3 7)
+(name (value (strip-one-label labeled-ritter)))
+;; ritter
+(phone-number (value (strip-one-label labeled-ritter)))
+;; 7479
+
+;;; Exercise 8.26
+(define value->labeled-value
+  (lambda (person)
+	(make-labeled-value (name->labels (name person))
+						person)))
+
+;;; Exercise 8.27
+(define values-with-first-label
+  (lambda (values label)
+	(define first-label=
+	  (lambda (labeled-value)
+		(= (car (labels labeled-value))
+		   label)))
+
+	(map strip-one-label
+		 (filter first-label= values))))
+
+(values-with-first-label
+ (map value->labeled-value
+	  (list (make-person 'abby 1137)
+			(make-person 'adonis 9595)
+			(make-person 'benjamin 4762)
+			(make-person 'gary 1712)
+			(make-person 'gwen 2854)
+			(make-person 'harry 5634)
+			(make-person 'kate 8462)
+			(make-person 'margaret 7344)
+			(make-person 'victor 8265)))
+ 4)
+;; (((2 7 9) (gary 1712)) ((9 3 6) (gwen 2854)) ((2 7 7 9) (harry 5634)))
+
+;;; Exercise 8.28
+(define categorize-by-first-label
+  (lambda (values)
+	(define loop-categories
+	  (lambda (label)
+		(if (> label 9)
+			'()
+			(cons (values-with-first-label values
+										   label)
+				  (loop-categories (+ label 1))))))
+
+	(loop-categories 2)))
+
+;;; Exercise 8.29
+(define filter-split
+  (lambda (pred? lst)
+	(define fs-iter
+	  (lambda (lst conc)
+		(if (null? lst)
+			(conc '() '())
+			(fs-iter (cdr lst)
+					 (lambda (hits misses)
+					   (if (pred? (car lst))
+						   (conc (cons (car lst)
+									   hits)
+								 misses)
+						   (conc hits
+								 (cons (car lst)
+									   misses))))))))
+
+	(fs-iter lst cons)))
+
+(define labeled-values->trie
+  (lambda (labeled-values)
+	(if (null? labeled-values)
+		(make-empty-trie)
+		(let ((split-values (filter-split empty-labels? labeled-values)))
+		  (make-nonempty-trie (map value (car split-values))
+							  (map labeled-values->trie
+								   (categorize-by-first-label
+									(cdr split-values))))))))
+
+(define values->trie
+  (lambda (values)
+	(labeled-values->trie (map value->labeled-value
+							   values))))
+
+(define phone-trie
+  (values->trie (list (make-person 'lindt      7483)
+					  (make-person 'cadbury    7464)
+					  (make-person 'wilbur     7466)
+					  (make-person 'hershey    7482)
+					  (make-person 'spruengly  7009)
+					  (make-person 'merkens    7469)
+					  (make-person 'baker      7465)
+					  (make-person 'ghiradelli 7476)
+					  (make-person 'tobler     7481)
+					  (make-person 'suchard    7654)
+					  (make-person 'callebaut  7480)
+					  (make-person 'ritter     7479)
+					  (make-person 'maillard   7477)
+					  (make-person 'see        7463)
+					  (make-person 'perugina   7007))))
