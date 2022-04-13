@@ -354,4 +354,4 @@
 ;; Conclusion: Therefore (foo n) terminates with the value n / ((2 * n) + 1)
 ;; for any nonnegative integer n.
 
-;;; Exercise 2.23 will be handled seperately.
+;;; Exercise 2.23 will be handled separately.
