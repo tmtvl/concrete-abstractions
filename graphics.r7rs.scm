@@ -1,5 +1,9 @@
 ;;; R7RS version of the graphics procedures in fungraph.scm.
 ;;; See additional-material/fungraph.scm for more information.
+;;; If you have ghostscript installed, you can convert .eps files to .jpg
+;;; images like this:
+;;; `gs -sDEVICE=jpeg -dJPEGQ=100 -dEPSCrop -dNOPAUSE -dBATCH -dSAFER -r300 \
+;;;     -sOutputFile=out.jpg input.eps'
 (define-library (graphics)
   (import (scheme base)
 		  (scheme case-lambda)
@@ -470,3 +474,50 @@
 		   (filled-triangle -2/3 -1/3 -1/3 -1 0 -1/3)
 		   (filled-triangle 0 -1/3 1/3 -1 2/3 -1/3)
 		   (filled-triangle 1/3 -1 2/3 -1/3 1 -1)))
+
+;;; Exercise 2.13
+(define (stack-copies-of n image)
+  (if (< n 2)
+	  image
+	  (stack image
+			 (stack-copies-of (- n 1)
+							  image))))
+
+;;; Exercise 2.14
+(define (quilt image w h)
+  (cond ((> h 1)
+		 (quilt (stack-copies-of h image)
+				w
+				1))
+		((> w 1)
+		 (side-by-side image
+					   (quilt image
+							  (- w 1)
+							  h)))
+		(else
+		 image)))
+
+;;; Exercise 2.15
+(define (checkerboard-stack-copies-of n image)
+  (if (< n 2)
+	  image
+	  (stack (if (even? n)
+				 (invert image)
+				 image)
+			 (checkerboard-stack-copies-of (- n 1)
+										   image))))
+
+(define (checkerboard image w h)
+  (cond ((> h 1)
+		 (checkerboard (checkerboard-stack-copies-of h image)
+					   w
+					   1))
+		((> w 1)
+		 (side-by-side (checkerboard image
+									 (- w 1)
+									 h)
+					   (if (even? w)
+						   (invert image)
+						   image)))
+		(else
+		 image)))
