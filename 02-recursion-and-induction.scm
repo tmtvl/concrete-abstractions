@@ -354,4 +354,38 @@
 ;; Conclusion: Therefore (foo n) terminates with the value n / ((2 * n) + 1)
 ;; for any nonnegative integer n.
 
-;;; Exercise 2.23 will be handled separately.
+;;; Exercise 2.23
+(define (image-of-digit d)
+  (cond ((= d 0)
+		 zero-bb)
+		((= d 1)
+		 one-bb)
+		((= d 2)
+		 two-bb)
+		((= d 3)
+		 three-bb)
+		((= d 4)
+		 four-bb)
+		((= d 5)
+		 five-bb)
+		((= d 6)
+		 six-bb)
+		((= d 7)
+		 seven-bb)
+		((= d 8)
+		 eight-bb)
+		((= d 9)
+		 nine-bb)
+		(else
+		 (error "No image for such a digit."
+				d))))
+
+(define (image-of-number n)
+  (cond ((< n 0)
+		 (error "Number must be positive."
+				n))
+		((< n 10)
+		 (image-of-digit n))
+		(else
+		 (side-by-side (image-of-number (quotient n 10))
+					   (image-of-digit (remainder n 10))))))
