@@ -25,7 +25,7 @@
   (lambda (n)
 	(even-division-counter n 0)))
 
-;;; Exercise 3.3 will be handled seperately.
+;;; Exercise 3.3 will be handled separately.
 ;;; Exercise 3.4
 (define power-product
   (lambda (a b e)
