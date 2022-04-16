@@ -521,3 +521,155 @@
 						   image)))
 		(else
 		 image)))
+
+;;; Exercise 3.3
+(define (quilt image w h)
+  (define (quilt-row res w)
+	(if (< w 2)
+		res
+		(quilt-row (side-by-side image res)
+				   (- w 1))))
+
+  (let ((row (quilt-row image w)))
+	(define (quilt-column res h)
+	  (if (< h 2)
+		  res
+		  (quilt-column (stack res row)
+						(- h 1))))
+
+	(quilt-column row h)))
+
+;;; Chapter 04
+(define (average x y)
+  (/ (+ x y)
+	 2))
+
+(define (c-curve x0 y0 x1 y1 level)
+  (if (= level 0)
+	  (line x0 y0 x1 y1)
+	  (let ((xmid (average x0 x1))
+			(ymid (average y0 y1))
+			(dx (- x1 x0))
+			(dy (- y1 y0)))
+		(let ((xa (- xmid
+					 (/ dy 2)))
+			  (ya (+ ymid
+					 (/ dx 2))))
+		  (overlay (c-curve x0
+							y0
+							xa
+							ya
+							(- level 1))
+				   (c-curve xa
+							ya
+							x1
+							y1
+							(- level 1)))))))
+
+;;; Exercise 4.5
+;; If the second curve goes from a to 1, the curvature is inverted, so instead
+;; of curving outward it curves inward, somewhat resembling an S curve.
+
+;;; Exercise 4.6
+(define (length-of-c-curve x0 y0 x1 y1 level)
+  (let ((dx (- x1 x0))
+		(dy (- y1 y0)))
+	(if (= level 0)
+		(sqrt (+ (square (abs dx))
+				 (square (abs dy))))
+		(let ((xmid (average x0 x1))
+			  (ymid (average y0 y1)))
+		  (let ((xa (- xmid
+					   (/ dy 2)))
+				(ya (+ ymid
+					   (/ dx 2))))
+			(+ (length-of-c-curve x0
+								  y0
+								  xa
+								  ya
+								  (- level 1))
+			   (length-of-c-curve xa
+								  ya
+								  x1
+								  y1
+								  (- level 1))))))))
+
+;;; Exercise 4.7
+;; We get the square roots of the product of the powers of two multiplied by
+;; the sum of the square of the x distance added to the square of the y
+;; distance.
+;; If that's confusing, we get (sqrt (* 2^level (+ x² y²))).
+
+;; Base case:
+;; (length-of-c-curve x0 y0 x1 y1 0) has x = (abs (- x1 x0)) and y = (abs (-
+;; y1 y0)).
+;; (sqrt (+ x² y²) = (sqrt (* 2⁰ (+ x² y²))), therefore our theorem holds.
+
+;; Induction hypothesis:
+;; (length-of-c-curve a b c d k) has v = (abs (- c a)) and w = (abs (- d b)),
+;; and returns (sqrt (* 2^k (+ v² w²))) for all c, a, d, and b; and all k in
+;; the range 0 <= k < n.
+
+;; Inductive step:
+;; (length-of-c-curve x0 y0 x1 y1 n) has x = (abs (- x1 x0)), y = (abs (- y1
+;; y0)), xmid = (/ (+ x0 x1) 2), ymid = (/ (+ y0 y1) 2), xa = (- xmid (/ y 2)),
+;; and ya = (- ymid (/ x 2)).
+;; Let (abs (- x1 x0)) = (- x1 x0) and (abs (- y1 y0)) = (- y1 y0).
+;;
+;; (+ (length-of-c-curve x0 y0 xa ya (- n 1))
+;;    (length-of-c-curve xa ya x1 y1 (- n 1)))
+;; = (+ (sqrt (* 2^(- n 1) (+ (- xa x0)² (- ya y0)²)))
+;;      (sqrt (* 2^(- n 1) (+ (- x1 xa)² (- y1 ya)²))))
+;;
+;; (- xa x0)²
+;; = (- xmid (/ y 2) x0)²
+;; = (- (/ (+ x0 x1) 2) (/ (- y1 y0) 2) x0)²
+;; = (- (/ (+ x0 x1) 2) (/ (- y1 y0) 2) (/ 2x0 2))²
+;; = (/ (- (+ x0 x1) (- y1 y0) 2x0) 2)²
+;; = (/ (+ x0 x1 -y1 y0 -2x0) 2)²
+;; = (/ (+ -x0 x1 -y1 y0) 2)²
+;; = (/ (+ x0² x1² y1² y0² -x0x1 x0y1 -x0y0 -x1y1 x1y0 -y1y0) 4)
+;;
+;; (- ya y0)²
+;; = (- (+ ymid (/ x 2)) y0)²
+;; = (- (+ (/ (+ y0 y1) 2) (/ (- x1 x0) 2)) y0)²
+;; = (- (+ (/ (+ y0 y1) 2) (/ (- x1 x0) 2)) (/ 2y0 2))²
+;; = (/ (+ (+ y0 y1) (- x1 x0) -2y0) 2)²
+;; = (/ (+ y0 y1 x1 -x0 -2y0) 2)²
+;; = (/ (+ -y0 y1 x1 -x0) 2)²
+;; = (/ (+ y0² y1² x1² x0² -y0y1 -y0x1 y0x0 y1x1 -y1x0 -x1x0) 4)
+;;
+;; (- x1 xa)²
+;; = (- x1 xmid (/ y 2))²
+;; = (- x1 (/ (+ x0 x1) 2) (/ (- y1 y0) 2))²
+;; = (- (/ 2x1 2) (/ (+ x0 x1) 2) (/ (- y1 y0) 2))²
+;; = (/ (- 2x1 (+ x0 x1) (- y1 y0)) 2)²
+;; = (/ (+ 2x1 -x0 -x1 -y1 y0) 2)²
+;; = (/ (+ x1 -x0 -y1 y0) 2)²
+;; = (/ (+ x1² x0² y1² y0² -x1x0 -x1y1 x1y0 x0y1 -x0y0 -y1y0) 4)
+;;
+;; (- y1 ya)²
+;; = (- y1 (+ ymid (/ x 2)))²
+;; = (- y1 (+ (/ (+ y0 y1) 2) (/ (- x1 x0) 2)))²
+;; = (- (/ 2y1 2) (+ (/ (+ y0 y1) 2) (/ (- x1 x0) 2)))²
+;; = (/ (- 2y1 (+ y0 y1) (- x1 x0)) 2)²
+;; = (/ (+ 2y1 -y0 -y1 -x1 x0) 2)²
+;; = (/ (+ y1 -y0 -x1 x0) 2)²
+;; = (/ (+ y1² y0² x1² x0² -y1y0 -y1x1 y1x0 y0x1 -y0x0 -x0x1) 4)
+;;
+;; (+ (- xa x0)² (- ya y0)²)
+;; = (+ (/ (+ x0² x1² y1² y0² -x0x1 x0y1 -x0y0 -x1y1 x1y0 -y1y0) 4)
+;;      (/ (+ y0² y1² x1² x0² -y0y1 -y0x1 y0x0 y1x1 -y1x0 -x1x0) 4))
+;; = (/ (+ x0² x1² y1² y0² -x0x1 x0y1 -x0y0 -x1y1 x1y0 -y1y0 y0² y1² x1² x0²
+;;         -y0y1 -y0x1 y0x0 y1x1 -y1x0 -x1x0)
+;;      4)
+;; = (/ (+ x0² x0² x1² x1² y1² y1² y0² y0² -2x0x1 -2y0y1) 4)
+;; = (/ (+ x0² x1² y1² y0² -x0x1 -y0y1) 2)
+;;
+;; (+ (- x1 xa)² (- y1 ya)²)
+;; = (+ (/ (+ x1² x0² y1² y0² -x1x0 -x1y1 x1y0 x0y1 -x0y0 -y1y0) 4)
+;;      (/ (+ y1² y0² x1² x0² -y1y0 -y1x1 y1x0 y0x1 -y0x0 -x0x1) 4))
+;; = (/ (+ x1² x0² y1² y0² -x1x0 -x1y1 x1y0 x0y1 -x0y0 -y1y0
+;;         y1² y0² x1² x0² -y1y0 -y1x1 y1x0 y0x1 -y0x0 -x0x1)
+;;      4)
+;; = (/ (+ x1² x0² y1² y0² -x1x0 -x1y1 x1y0 x0y1 -x0y0 -y1y0) 2)
